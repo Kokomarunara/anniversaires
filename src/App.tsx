@@ -1,19 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Person } from './types';
-import { hasGitHub, loadSettings, saveSettings, type Settings } from './settings';
-import type { Store } from './storage/store';
-import { localStore } from './storage/localStore';
-import { createGitHubStore } from './storage/githubStore';
-import { GitHubError } from './storage/github';
+import { loadSettings, saveSettings, type Settings } from './settings';
+import { localStore as store } from './storage/localStore';
 import { Home } from './views/Home';
 import { PersonView } from './views/PersonView';
 import { EditPerson } from './views/EditPerson';
 import { SettingsView } from './views/SettingsView';
-import { Welcome } from './views/Welcome';
 import { sound } from './lib/sound';
-
-// en local (npm run dev), l'app fonctionne sans code d'accès, avec des données sur l'ordinateur
-const LOCAL_DEV = ['localhost', '127.0.0.1'].includes(location.hostname);
 
 type Route =
   | { name: 'home' }
@@ -64,11 +57,6 @@ export function App() {
     setErrorState(message);
   }, []);
 
-  const store: Store = useMemo(
-    () => (hasGitHub(settings) ? createGitHubStore(settings) : localStore),
-    [settings.owner, settings.repo, settings.token],
-  );
-
   useEffect(() => {
     const onHash = () => {
       setRoute(parseHash());
@@ -83,27 +71,13 @@ export function App() {
       setPeople(await store.list());
       setError(null);
     } catch (err) {
-      // code d'accès expiré : on revient à l'écran de bienvenue pour en coller un nouveau
-      if (err instanceof GitHubError && err.status === 401) {
-        setSettings((s) => {
-          const next = { ...s, token: '' };
-          saveSettings(next);
-          return next;
-        });
-        return;
-      }
       setError(`Impossible de charger tes anniversaires : ${(err as Error).message}`);
       setPeople((p) => p ?? []);
     }
-  }, [store, setError]);
+  }, [setError]);
 
   useEffect(() => {
-    setPeople(null);
     refresh();
-    // recharge quand on revient sur l'app, pour voir les ajouts de l'autre téléphone
-    const onVisible = () => document.visibilityState === 'visible' && refresh();
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [refresh]);
 
   function changeSettings(next: Settings) {
@@ -139,10 +113,8 @@ export function App() {
   const find = (id?: string) => people?.find((p) => p.id === id);
   let view;
 
-  if (!hasGitHub(settings) && !LOCAL_DEV) {
-    view = <Welcome settings={settings} onConnected={changeSettings} />;
-  } else if (route.name === 'settings') {
-    view = <SettingsView settings={settings} onBack={back} onChange={changeSettings} />;
+  if (route.name === 'settings') {
+    view = <SettingsView settings={settings} people={people ?? []} onBack={back} onChange={changeSettings} />;
   } else if (route.name === 'edit' && (!route.id || people)) {
     const person = find(route.id);
     view = (
@@ -165,6 +137,7 @@ export function App() {
         key={route.id}
         person={find(route.id)!}
         store={store}
+        hour={settings.hour}
         onBack={back}
         onEdit={() => go(`#/edit/${route.id}`)}
         onSave={save}

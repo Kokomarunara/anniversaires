@@ -26,11 +26,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # même app copiée sous /ketura/ : elle y lit le dépôt de données de Ketura (voir src/profile.ts)
-      - name: Lien de Ketura
-        run: |
-          cp -r dist /tmp/ketura
-          mv /tmp/ketura dist/ketura
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

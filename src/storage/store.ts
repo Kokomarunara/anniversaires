@@ -1,15 +1,14 @@
 import type { Person } from '../types';
 
 export interface Store {
-  kind: 'demo' | 'github';
   list(): Promise<Person[]>;
   /** ajoute ou remplace (selon l'id) */
   save(person: Person): Promise<void>;
   remove(person: Person): Promise<void>;
-  /** enregistre une photo et renvoie son chemin */
+  /** enregistre une photo et renvoie sa référence */
   putPhoto(personId: string, photo: Blob): Promise<string>;
   deletePhoto(path: string): Promise<void>;
-  /** URL affichable pour un chemin de photo */
+  /** URL affichable pour une référence de photo */
   photoUrl(path: string): Promise<string>;
 }
 

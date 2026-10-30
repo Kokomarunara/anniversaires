@@ -1153,6 +1153,52 @@ h2,
   margin: -12px 6px 24px;
 }
 
+.calendar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.muted.settings-note,
+.calendar-btn + .muted.reminders-note {
+  margin-top: 0;
+}
+
+.install-card {
+  margin-bottom: 16px;
+}
+
+.install-card .btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.install-steps {
+  margin: 10px 0 0;
+  padding: 14px 16px 14px 36px;
+  border-radius: 16px;
+  background: var(--surface);
+  line-height: 1.5;
+  animation: rise 200ms var(--ease-out) both;
+}
+
+p.install-steps {
+  padding-left: 16px;
+}
+
+.install-steps li + li {
+  margin-top: 6px;
+}
+
+.install-steps svg {
+  vertical-align: -3px;
+  color: var(--accent);
+}
+
 /* ---------- Divers ---------- */
 
 .muted {

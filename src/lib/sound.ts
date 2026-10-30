@@ -1,8 +1,7 @@
 // Petits sons synthétisés à la volée (aucun fichier audio) : bulles et notes de marimba.
 // Sur iPhone, ils respectent le bouton silencieux.
-import { storageKey } from '../profile';
 
-const KEY = storageKey('anniv.sound');
+const KEY = 'anniv.sound';
 let ctx: AudioContext | null = null;
 let enabled = true;
 try {

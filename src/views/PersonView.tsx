@@ -7,10 +7,13 @@ import { Reminders } from '../components/Reminders';
 import { currentAge, formatBirthday, nextBirthday } from '../lib/birthdays';
 import { colorFor, inkOn } from '../lib/colors';
 import { sound } from '../lib/sound';
+import { buildCalendar, openCalendar } from '../lib/calendar';
 
 interface Props {
   person: Person;
   store: Store;
+  /** heure des alertes du calendrier */
+  hour: number;
   onBack: () => void;
   onEdit: () => void;
   onSave: (person: Person) => Promise<void>;
@@ -19,7 +22,7 @@ interface Props {
 
 type NoteState = 'idle' | 'saving' | 'saved' | 'error';
 
-export function PersonView({ person, store, onBack, onEdit, onSave, onDelete }: Props) {
+export function PersonView({ person, store, hour, onBack, onEdit, onSave, onDelete }: Props) {
   const [notes, setNotes] = useState(person.notes);
   const [noteState, setNoteState] = useState<NoteState>('idle');
   const latest = useRef(person);
@@ -86,7 +89,18 @@ export function PersonView({ person, store, onBack, onEdit, onSave, onDelete }: 
         reminders={person.reminders}
         onChange={(patch) => onSave({ ...person, ...patch })}
       />
-      <p className="muted reminders-note">Les rappels arrivent en notification sur ton téléphone, à l’heure choisie dans les Réglages.</p>
+      <button
+        type="button"
+        className="btn-secondary wide calendar-btn"
+        disabled={!person.remindOnDay && person.reminders.length === 0}
+        onClick={() => openCalendar(buildCalendar([person], hour), `anniversaire-${person.name}.ics`)}
+      >
+        <span aria-hidden="true">📅</span> Ajouter au calendrier
+      </button>
+      <p className="muted reminders-note">
+        Ton iPhone t’alertera à {String(hour).padStart(2, '0')}:00. Si tu changes les rappels plus tard, ajoute-les de nouveau et
+        supprime les anciens dans Calendrier.
+      </p>
 
       <section>
         <div className="section-head">

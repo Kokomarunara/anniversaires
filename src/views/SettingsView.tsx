@@ -1,52 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Settings } from '../settings';
+import type { Person } from '../types';
 import { NavBar } from '../components/NavBar';
 import { setSoundEnabled, sound, soundEnabled } from '../lib/sound';
-import { disablePush, enablePush, getPushStatus, syncSubscription, type PushStatus } from '../lib/push';
+import { buildCalendar, countEvents, openCalendar } from '../lib/calendar';
 
 interface Props {
   settings: Settings;
+  people: Person[];
   onBack: () => void;
   onChange: (settings: Settings) => void;
 }
 
-const PUSH_HELP: Partial<Record<PushStatus, string>> = {
-  'needs-install': 'Pour recevoir les notifications, ajoute d’abord l’app à l’écran d’accueil : dans Safari, touche Partager › « Sur l’écran d’accueil », puis ouvre-la depuis son icône.',
-  unsupported: 'Cet appareil ne peut pas recevoir les notifications.',
-  'missing-key': 'Les notifications ne sont pas disponibles pour le moment.',
-  denied: 'Les notifications sont bloquées. Réautorise-les dans les réglages du téléphone, puis reviens ici.',
-};
-
-export function SettingsView({ settings, onBack, onChange }: Props) {
-  const [push, setPush] = useState<PushStatus | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function SettingsView({ settings, people, onBack, onChange }: Props) {
   const [sounds, setSounds] = useState(soundEnabled);
-
-  useEffect(() => {
-    getPushStatus().then(setPush);
-  }, []);
-
-  async function run(action: () => Promise<void>) {
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-    } catch (err) {
-      sound.error();
-      setError((err as Error).message);
-    }
-    setPush(await getPushStatus());
-    setBusy(false);
-  }
-
-  function changeHour(hour: number) {
-    const next = { ...settings, hour };
-    onChange(next);
-    if (push === 'on') run(() => syncSubscription(next));
-  }
-
-  const canToggle = push === 'on' || push === 'off';
+  const events = countEvents(people);
 
   return (
     <div className="screen">
@@ -72,20 +40,8 @@ export function SettingsView({ settings, onBack, onChange }: Props) {
 
       <section className="group">
         <div className="group-row">
-          <label htmlFor="notifs">Notifications</label>
-          <input
-            id="notifs"
-            type="checkbox"
-            role="switch"
-            className="switch"
-            checked={push === 'on'}
-            disabled={!canToggle || busy}
-            onChange={(e) => run(() => (e.target.checked ? enablePush(settings) : disablePush(settings)))}
-          />
-        </div>
-        <div className="group-row">
-          <label htmlFor="hour">Heure des notifications</label>
-          <select id="hour" className="inline-select" value={settings.hour} onChange={(e) => changeHour(Number(e.target.value))}>
+          <label htmlFor="hour">Heure des rappels</label>
+          <select id="hour" className="inline-select" value={settings.hour} onChange={(e) => onChange({ hour: Number(e.target.value) })}>
             {Array.from({ length: 24 }, (_, h) => (
               <option key={h} value={h}>
                 {String(h).padStart(2, '0')}:00
@@ -94,12 +50,20 @@ export function SettingsView({ settings, onBack, onChange }: Props) {
           </select>
         </div>
       </section>
-      {push && PUSH_HELP[push] && <p className="muted settings-note">{PUSH_HELP[push]}</p>}
-      {error && (
-        <p className="status error settings-note" role="alert">
-          {error}
-        </p>
-      )}
+
+      <button
+        type="button"
+        className="btn-secondary wide calendar-btn"
+        disabled={events === 0}
+        onClick={() => openCalendar(buildCalendar(people, settings.hour), 'anniversaires.ics')}
+      >
+        <span aria-hidden="true">📅</span> Ajouter tous les anniversaires au calendrier
+      </button>
+      <p className="muted settings-note">
+        {events === 0
+          ? 'Ajoute d’abord des anniversaires.'
+          : `Ton iPhone t’alertera lui-même (${events} rappel${events > 1 ? 's' : ''}, chaque année). Si tu les as déjà ajoutés, supprime les anciens dans Calendrier pour éviter les doublons.`}
+      </p>
     </div>
   );
 }
