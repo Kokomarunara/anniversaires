@@ -10,6 +10,8 @@ import { PhotoCropper } from '../components/PhotoCropper';
 
 interface Props {
   person?: Person;
+  /** aperçu de la page de présentation : formulaire pré-rempli mais présenté comme un ajout */
+  asNew?: boolean;
   store: Store;
   onCancel: () => void;
   onSaved: (person: Person) => Promise<void>;
@@ -19,7 +21,8 @@ type PhotoChange = { kind: 'keep' } | { kind: 'new'; blob: Blob; preview: string
 
 const THIS_YEAR = new Date().getFullYear();
 
-export function EditPerson({ person, store, onCancel, onSaved }: Props) {
+export function EditPerson({ person, asNew, store, onCancel, onSaved }: Props) {
+  const editing = Boolean(person) && !asNew;
   const initial = person ? parseBirthday(person.birthday) : null;
   const [name, setName] = useState(person?.name ?? '');
   // l'id est fixé dès l'ouverture pour que le personnage garde la même couleur après l'ajout
@@ -139,8 +142,8 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
       <NavBar
         onBack={onCancel}
         backLabel="Annuler"
-        title={person ? 'Modifier' : 'Nouvelle personne'}
-        action={{ label: saving ? 'Enregistrement…' : person ? 'Enregistrer' : 'Ajouter', onClick: () => submit(), disabled: saving, bold: true }}
+        title={editing ? 'Modifier' : 'Nouvelle personne'}
+        action={{ label: saving ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Ajouter', onClick: () => submit(), disabled: saving, bold: true }}
       />
 
       <div className="photo-picker">
@@ -301,7 +304,7 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
       {error && <p className="form-error" role="alert">{error}</p>}
 
       <button type="submit" className="btn-primary wide" disabled={saving}>
-        {saving ? 'Enregistrement…' : person ? 'Enregistrer' : 'Ajouter'}
+        {saving ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Ajouter'}
       </button>
 
       {drawFrom !== undefined && (
