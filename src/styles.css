@@ -283,10 +283,12 @@ h2,
 
 .previews {
   display: flex;
-  justify-content: safe center;
   gap: 16px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
+  scroll-padding: 0 20px;
   padding: 28px 20px 8px;
   scrollbar-width: none;
 }
@@ -299,7 +301,31 @@ h2,
   flex: 0 0 auto;
   width: 225px;
   margin: 0;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
+}
+
+/* centré quand tout tient à l'écran, sans jamais couper le premier aperçu quand ça déborde
+   (« justify-content: center » coupe le début de la rangée sur iPhone) */
+.preview:first-child {
+  margin-left: auto;
+}
+
+.preview:last-child {
+  margin-right: auto;
+}
+
+/* les aperçus sont de simples images : le doigt fait défiler la rangée, rien d'autre
+   (sinon l'outil de dessin de l'aperçu « capture » le doigt et bloque le défilement) */
+.preview-frame,
+.preview-frame * {
+  pointer-events: none;
+  touch-action: pan-x pan-y !important;
+}
+
+/* espace à droite après le dernier aperçu */
+.previews::after {
+  content: '';
+  flex: 0 0 4px;
 }
 
 .preview-frame {
