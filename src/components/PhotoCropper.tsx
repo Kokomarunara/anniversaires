@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from 'react';
 
 const OUT = 512;
-const MAX_ZOOM = 4;
+/** le plus petit cercle, en part du plus petit côté de la photo */
+const MIN_SIZE = 0.15;
 
 interface Props {
   /** URL de l'image à recadrer */
@@ -10,27 +11,26 @@ interface Props {
   onDone: (photo: Blob) => void;
 }
 
-interface View {
-  /** zoom au-dessus du cadrage minimal (1 = l'image remplit juste le cercle) */
-  zoom: number;
-  /** position du coin haut-gauche de l'image dans le cadre, en px */
+interface Circle {
+  /** centre et rayon, en px dans la photo affichée */
   x: number;
   y: number;
+  r: number;
 }
 
-/** Recadrage d'une photo dans le cercle : on la fait glisser et on zoome (pincer ou curseur) */
+/** Recadrage : la photo entière est affichée, on déplace le cercle n'importe où dessus et on règle sa taille */
 export function PhotoCropper({ src, onCancel, onDone }: Props) {
-  const frameRef = useRef<HTMLDivElement>(null);
+  const areaRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
-  const [frame, setFrame] = useState(300);
-  const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
+  const [area, setArea] = useState(300);
+  const [circle, setCircle] = useState<Circle | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+  const pinch = useRef<{ dist: number; r: number } | null>(null);
 
   useEffect(() => {
-    const el = frameRef.current!;
-    const measure = () => setFrame(el.clientWidth);
+    const el = areaRef.current!;
+    const measure = () => setArea(el.clientWidth);
     measure();
     addEventListener('resize', measure);
     document.body.style.overflow = 'hidden';
@@ -40,59 +40,51 @@ export function PhotoCropper({ src, onCancel, onDone }: Props) {
     };
   }, []);
 
-  const base = natural ? frame / Math.min(natural.w, natural.h) : 1;
-  const scale = base * view.zoom;
+  // la photo entière tient dans le carré
+  const fit = natural ? area / Math.max(natural.w, natural.h) : 1;
+  const dw = natural ? natural.w * fit : area;
+  const dh = natural ? natural.h * fit : area;
+  const maxR = Math.min(dw, dh) / 2;
+  const minR = maxR * MIN_SIZE * 2;
 
-  /** garde l'image collée aux bords du cadre : jamais de vide dans le cercle */
-  function clamp(v: View): View {
-    if (!natural) return v;
-    const s = base * v.zoom;
-    const minX = frame - natural.w * s;
-    const minY = frame - natural.h * s;
-    return { zoom: v.zoom, x: Math.min(0, Math.max(minX, v.x)), y: Math.min(0, Math.max(minY, v.y)) };
+  /** le cercle reste entièrement sur la photo */
+  function clamp(c: Circle): Circle {
+    const r = Math.min(maxR, Math.max(minR, c.r));
+    return { r, x: Math.min(dw - r, Math.max(r, c.x)), y: Math.min(dh - r, Math.max(r, c.y)) };
   }
 
-  // au chargement (ou si le cadre change de taille) : image centrée
+  // au départ : le plus grand cercle possible, au centre
   useEffect(() => {
-    if (!natural) return;
-    const s = base;
-    setView({ zoom: 1, x: (frame - natural.w * s) / 2, y: (frame - natural.h * s) / 2 });
-  }, [natural, frame]);
-
-  /** zoom autour d'un point du cadre (le point sous les doigts ne bouge pas) */
-  function zoomAt(zoom: number, cx = frame / 2, cy = frame / 2) {
-    setView((v) => {
-      const z = Math.min(MAX_ZOOM, Math.max(1, zoom));
-      const ratio = z / v.zoom;
-      return clamp({ zoom: z, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio });
-    });
-  }
+    if (natural) setCircle({ x: dw / 2, y: dh / 2, r: maxR });
+  }, [natural, area]);
 
   function local(e: PointerEvent) {
-    const r = frameRef.current!.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const rect = areaRef.current!.getBoundingClientRect();
+    // coordonnées dans la photo affichée (centrée dans le carré)
+    return { x: e.clientX - rect.left - (area - dw) / 2, y: e.clientY - rect.top - (area - dh) / 2 };
   }
 
   function down(e: PointerEvent<HTMLDivElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, local(e));
-    if (pointers.current.size === 2) {
+    if (pointers.current.size === 2 && circle) {
       const [a, b] = [...pointers.current.values()];
-      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: view.zoom };
+      pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), r: circle.r };
     }
   }
 
   function move(e: PointerEvent<HTMLDivElement>) {
     const prev = pointers.current.get(e.pointerId);
-    if (!prev) return;
+    if (!prev || !circle) return;
     const p = local(e);
     pointers.current.set(e.pointerId, p);
     if (pointers.current.size === 2 && pinch.current) {
       const [a, b] = [...pointers.current.values()];
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      zoomAt(pinch.current.zoom * (dist / pinch.current.dist), (a.x + b.x) / 2, (a.y + b.y) / 2);
+      const r = pinch.current.r * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.dist);
+      setCircle((c) => c && clamp({ ...c, r }));
     } else if (pointers.current.size === 1) {
-      setView((v) => clamp({ ...v, x: v.x + p.x - prev.x, y: v.y + p.y - prev.y }));
+      // le cercle suit le doigt
+      setCircle((c) => c && clamp({ ...c, x: c.x + p.x - prev.x, y: c.y + p.y - prev.y }));
     }
   }
 
@@ -102,21 +94,24 @@ export function PhotoCropper({ src, onCancel, onDone }: Props) {
   }
 
   function wheel(e: WheelEvent<HTMLDivElement>) {
-    const r = frameRef.current!.getBoundingClientRect();
-    zoomAt(view.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX - r.left, e.clientY - r.top);
+    setCircle((c) => c && clamp({ ...c, r: c.r * (e.deltaY < 0 ? 1.08 : 1 / 1.08) }));
   }
 
   function done() {
     const img = imgRef.current;
-    if (!img || !natural) return;
+    if (!img || !natural || !circle) return;
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = OUT;
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, OUT, OUT);
-    ctx.drawImage(img, -view.x / scale, -view.y / scale, frame / scale, frame / scale, 0, 0, OUT, OUT);
+    const side = (circle.r * 2) / fit;
+    ctx.drawImage(img, (circle.x - circle.r) / fit, (circle.y - circle.r) / fit, side, side, 0, 0, OUT, OUT);
     canvas.toBlob((b) => b && onDone(b), 'image/jpeg', 0.85);
   }
+
+  // curseur de taille : 0 = petit cercle, 1 = le plus grand possible
+  const size = circle ? (circle.r - minR) / (maxR - minR || 1) : 1;
 
   return (
     <div className="cropper" role="dialog" aria-modal="true" aria-label="Recadrer la photo">
@@ -125,45 +120,53 @@ export function PhotoCropper({ src, onCancel, onDone }: Props) {
           Annuler
         </button>
         <span className="nav-title">Recadrer</span>
-        <button type="button" className="nav-btn nav-bold" onClick={done} disabled={!natural}>
+        <button type="button" className="nav-btn nav-bold" onClick={done} disabled={!circle}>
           Valider
         </button>
       </header>
 
       <div
-        ref={frameRef}
-        className="cropper-frame"
+        ref={areaRef}
+        className="cropper-area"
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
         onPointerCancel={up}
         onWheel={wheel}
       >
-        <img
-          ref={imgRef}
-          src={src}
-          alt=""
-          draggable={false}
-          onLoad={(e) => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${scale})`, opacity: natural ? 1 : 0 }}
-        />
-        <div className="cropper-mask" aria-hidden="true" />
+        <div className="cropper-photo" style={{ width: dw, height: dh }}>
+          <img
+            ref={imgRef}
+            src={src}
+            alt=""
+            draggable={false}
+            onLoad={(e) => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+            style={{ opacity: natural ? 1 : 0 }}
+          />
+          {circle && (
+            <div
+              className="cropper-circle"
+              aria-hidden="true"
+              style={{ left: circle.x - circle.r, top: circle.y - circle.r, width: circle.r * 2, height: circle.r * 2 }}
+            />
+          )}
+        </div>
       </div>
 
-      <p className="cropper-hint">Fais glisser la photo et pince pour zoomer.</p>
+      <p className="cropper-hint">Déplace le cercle sur la photo, pince pour changer sa taille.</p>
 
       <div className="cropper-zoom">
-        <span aria-hidden="true">−</span>
+        <span aria-hidden="true" className="cropper-dot small" />
         <input
           type="range"
-          min={1}
-          max={MAX_ZOOM}
+          min={0}
+          max={1}
           step={0.01}
-          value={view.zoom}
-          aria-label="Zoom"
-          onChange={(e) => zoomAt(Number(e.target.value))}
+          value={size}
+          aria-label="Taille du cercle"
+          onChange={(e) => setCircle((c) => c && clamp({ ...c, r: minR + Number(e.target.value) * (maxR - minR) }))}
         />
-        <span aria-hidden="true">+</span>
+        <span aria-hidden="true" className="cropper-dot" />
       </div>
     </div>
   );
