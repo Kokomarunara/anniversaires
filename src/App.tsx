@@ -6,7 +6,13 @@ import { Home } from './views/Home';
 import { PersonView } from './views/PersonView';
 import { EditPerson } from './views/EditPerson';
 import { SettingsView } from './views/SettingsView';
+import { Landing } from './views/Landing';
 import { sound } from './lib/sound';
+import { isInstalled } from './lib/install';
+
+// ouvert dans le navigateur : page de présentation ; installé sur l'écran d'accueil : l'app
+// (?app permet d'ouvrir l'app dans le navigateur pour la tester sur ordinateur)
+const SHOW_LANDING = !isInstalled() && !new URLSearchParams(location.search).has('app');
 
 type Route =
   | { name: 'home' }
@@ -113,7 +119,9 @@ export function App() {
   const find = (id?: string) => people?.find((p) => p.id === id);
   let view;
 
-  if (route.name === 'settings') {
+  if (SHOW_LANDING) {
+    view = <Landing />;
+  } else if (route.name === 'settings') {
     view = <SettingsView settings={settings} people={people ?? []} onBack={back} onChange={changeSettings} />;
   } else if (route.name === 'edit' && (!route.id || people)) {
     const person = find(route.id);

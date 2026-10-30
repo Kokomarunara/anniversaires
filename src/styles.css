@@ -229,6 +229,112 @@ h2,
   color: #121212;
 }
 
+/* ---------- Page de présentation (lien ouvert dans le navigateur) ---------- */
+
+.landing {
+  min-height: 100dvh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: calc(env(safe-area-inset-top) + 40px) 20px 28px;
+  background: var(--blue);
+  color: #fff;
+  border-radius: 0 0 32px 32px;
+}
+
+.landing-icon {
+  border-radius: 24px;
+  box-shadow: 0 0 0 3px #121212, 0 10px 24px rgb(0 0 0 / 0.25);
+  transform: rotate(-4deg);
+}
+
+.landing-hero h1 {
+  margin: 20px 0 6px;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.landing-hero > p {
+  margin: 0 0 24px;
+  max-width: 30ch;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.landing-hero .install-card {
+  width: 100%;
+  max-width: 360px;
+  margin: 0;
+  color: var(--text);
+  text-align: left;
+}
+
+.landing-hero .btn-secondary {
+  background: var(--yellow);
+  color: #121212;
+  box-shadow: 0 0 0 3px #121212;
+  font-size: 18px;
+}
+
+.previews {
+  display: flex;
+  justify-content: safe center;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 28px 20px 8px;
+  scrollbar-width: none;
+}
+
+.previews::-webkit-scrollbar {
+  display: none;
+}
+
+.preview {
+  flex: 0 0 auto;
+  width: 225px;
+  margin: 0;
+  scroll-snap-align: center;
+}
+
+.preview-frame {
+  position: relative;
+  width: 225px;
+  height: 456px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--bg);
+  box-shadow: 0 0 0 3px #121212, 0 12px 28px rgb(0 0 0 / 0.15);
+}
+
+/* le vrai écran en taille iPhone, réduit à 60 % */
+.preview-screen {
+  position: relative;
+  width: 375px;
+  height: 760px;
+  overflow: hidden;
+  transform: scale(0.6);
+  transform-origin: top left;
+}
+
+.preview-screen .screen {
+  min-height: 760px;
+}
+
+.preview figcaption {
+  margin-top: 12px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
 /* ---------- Premier lancement ---------- */
 
 .welcome {

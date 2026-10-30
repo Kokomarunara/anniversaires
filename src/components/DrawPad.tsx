@@ -12,9 +12,11 @@ interface Props {
   startFrom?: string | null;
   onCancel: () => void;
   onDone: (drawing: Blob) => void;
+  /** affiché comme aperçu sur la page de présentation : ne bloque pas le défilement */
+  embedded?: boolean;
 }
 
-export function DrawPad({ startFrom, onCancel, onDone }: Props) {
+export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(COLORS[2]);
   const [brush, setBrush] = useState(BRUSHES[1]);
@@ -40,11 +42,12 @@ export function DrawPad({ startFrom, onCancel, onDone }: Props) {
 
   // empêche la page de défiler pendant qu'on dessine sur iPhone
   useEffect(() => {
+    if (embedded) return;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [embedded]);
 
   function snapshot() {
     undo.current.push(ctx().getImageData(0, 0, SIZE, SIZE));

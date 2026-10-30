@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import type { Person } from '../types';
 import type { Store } from '../storage/store';
 import { Avatar, Character } from '../components/Avatar';
-import { InstallCard } from '../components/InstallCard';
 import { formatBirthday, nextBirthday, relativeLabel } from '../lib/birthdays';
 
 interface Props {
@@ -63,8 +62,6 @@ export function Home({ people, store, onOpen, onAdd, onSettings }: Props) {
           </button>
         ))}
       </header>
-
-      <InstallCard />
 
       {people === null ? (
         <div className="grid">
