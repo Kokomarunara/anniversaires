@@ -14,11 +14,9 @@ interface Props {
   onDone: (drawing: Blob) => void;
   /** affiché comme aperçu sur la page de présentation : ne bloque pas le défilement */
   embedded?: boolean;
-  /** dessin tracé au chargement (aperçu), sur une toile de 512 × 512 */
-  sketch?: (ctx: CanvasRenderingContext2D) => void;
 }
 
-export function DrawPad({ startFrom, onCancel, onDone, embedded, sketch }: Props) {
+export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(COLORS[2]);
   const [brush, setBrush] = useState(BRUSHES[1]);
@@ -33,7 +31,6 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded, sketch }: Props
     const c = ctx();
     c.fillStyle = '#ffffff';
     c.fillRect(0, 0, SIZE, SIZE);
-    sketch?.(c);
     if (!startFrom) return;
     const img = new Image();
     img.onload = () => {
@@ -41,7 +38,7 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded, sketch }: Props
       c.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE);
     };
     img.src = startFrom;
-  }, [startFrom, sketch]);
+  }, [startFrom]);
 
   // empêche la page de défiler pendant qu'on dessine sur iPhone
   useEffect(() => {
@@ -142,6 +139,8 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded, sketch }: Props
           onPointerUp={up}
           onPointerCancel={up}
         />
+        {/* repère : seul l'intérieur du cercle sera visible dans l'icône de la personne */}
+        <div className="drawpad-guide" aria-hidden="true" />
       </div>
 
       <div className="drawpad-tools">

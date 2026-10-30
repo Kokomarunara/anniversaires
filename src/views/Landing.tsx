@@ -6,7 +6,6 @@ import { DrawPad } from '../components/DrawPad';
 import { Home } from './Home';
 import { PersonView } from './PersonView';
 import { EditPerson } from './EditPerson';
-import { drawFingerHead } from '../lib/fingerSketch';
 
 // Page affichée quand on ouvre le lien dans le navigateur : le bouton d'installation
 // et des aperçus de l'app, qui sont les vrais écrans remplis avec des personnes fictives.
@@ -67,7 +66,8 @@ const PREVIEWS: { caption: string; screen: ReactNode }[] = [
   },
   {
     caption: 'Dessine sa photo de profil',
-    screen: <DrawPad sketch={drawFingerHead} onCancel={noop} onDone={noop} embedded />,
+    // dessin fait à la main dans l'atelier (npm run dev, puis ?atelier)
+    screen: <DrawPad startFrom="./previews/dessin-1.jpg" onCancel={noop} onDone={noop} embedded />,
   },
 ];
 
