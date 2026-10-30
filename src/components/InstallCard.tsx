@@ -1,22 +1,17 @@
 import { useState } from 'react';
-import { isIOS, isInstalled, promptInstall } from '../lib/install';
+import { isIOS, isInstalled } from '../lib/install';
 
-/** Bouton « Installer l'app », visible tant que l'app est ouverte dans le navigateur */
+/** Bouton « Installer sur iPhone », visible tant que l'app est ouverte dans le navigateur */
 export function InstallCard() {
   const [steps, setSteps] = useState(false);
   if (isInstalled()) return null;
 
   return (
     <section className="install-card">
-      <button
-        type="button"
-        className="btn-secondary wide"
-        onClick={async () => {
-          if (!(await promptInstall())) setSteps((s) => !s);
-        }}
-      >
-        <span aria-hidden="true">📲</span> Installer l’app
+      <button type="button" className="btn-secondary wide" onClick={() => setSteps((s) => !s)}>
+        <span aria-hidden="true">📲</span> Installer sur iPhone
       </button>
+      <p className="install-platform">Pour iPhone (iOS) · à ouvrir avec Safari</p>
       {steps &&
         (isIOS ? (
           <ol className="install-steps">
@@ -36,8 +31,8 @@ export function InstallCard() {
           </ol>
         ) : (
           <p className="install-steps">
-            Ouvre le menu du navigateur, puis choisis <strong>« Installer l’application »</strong> ou{' '}
-            <strong>« Ajouter à l’écran d’accueil »</strong>.
+            Cette app est faite pour <strong>iPhone</strong>. Ouvre ce lien sur ton iPhone, dans <strong>Safari</strong>, puis
+            touche à nouveau ce bouton.
           </p>
         ))}
     </section>

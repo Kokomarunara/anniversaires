@@ -1387,6 +1387,14 @@ h2,
   gap: 8px;
 }
 
+.install-platform {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.85);
+}
+
 .install-steps {
   margin: 10px 0 0;
   padding: 14px 16px 14px 36px;
