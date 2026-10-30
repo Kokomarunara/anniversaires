@@ -6,7 +6,7 @@ import { NavBar } from '../components/NavBar';
 import { Reminders } from '../components/Reminders';
 import { DrawPad } from '../components/DrawPad';
 import { MONTHS, birthYearFromAge, currentAge, daysInMonth, formatBirthdayValue, parseBirthday } from '../lib/birthdays';
-import { resizePhoto } from '../lib/image';
+import { PhotoCropper } from '../components/PhotoCropper';
 
 interface Props {
   person?: Person;
@@ -35,6 +35,8 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
   const [remindOnDay, setRemindOnDay] = useState(person?.remindOnDay ?? true);
   const [reminders, setReminders] = useState<number[]>(person?.reminders ?? []);
   const [photo, setPhoto] = useState<PhotoChange>({ kind: 'keep' });
+  const [original, setOriginal] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,14 +80,19 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
   const missing = !name.trim() || !gender || !day || !month;
   const canSave = !missing && !dayInvalid && !saving;
 
-  async function pickPhoto(file: File | undefined) {
+  // la photo choisie ouvre directement le recadrage ; on garde l'originale pour pouvoir recadrer encore
+  function pickPhoto(file: File | undefined) {
     if (!file) return;
-    try {
-      const blob = await resizePhoto(file);
-      setPhoto({ kind: 'new', blob, preview: URL.createObjectURL(blob) });
-    } catch {
-      setError('Cette image n’a pas pu être lue. Essaie avec une autre photo.');
-    }
+    if (original) URL.revokeObjectURL(original);
+    const url = URL.createObjectURL(file);
+    setOriginal(url);
+    setCropSrc(url);
+  }
+
+  async function openCropper() {
+    if (original) setCropSrc(original);
+    else if (photo.kind === 'new') setCropSrc(photo.preview);
+    else if (person?.photo) setCropSrc((await store.photoUrl(person.photo).catch(() => '')) || null);
   }
 
   // le dessin part de la photo actuelle, s'il y en a une
@@ -144,11 +151,23 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
           <button type="button" className="chip" onClick={() => fileInput.current?.click()}>
             <span aria-hidden="true">📷</span> {hasPhoto ? 'Changer' : 'Photo'}
           </button>
+          {hasPhoto && (
+            <button type="button" className="chip" onClick={openCropper}>
+              <span aria-hidden="true">✂️</span> Recadrer
+            </button>
+          )}
           <button type="button" className="chip" onClick={openDrawPad}>
             <span aria-hidden="true">🖍️</span> Dessiner
           </button>
           {hasPhoto && (
-            <button type="button" className="chip chip-danger" onClick={() => setPhoto({ kind: 'remove' })}>
+            <button
+              type="button"
+              className="chip chip-danger"
+              onClick={() => {
+                setPhoto({ kind: 'remove' });
+                setOriginal(null);
+              }}
+            >
               Retirer
             </button>
           )}
@@ -291,7 +310,20 @@ export function EditPerson({ person, store, onCancel, onSaved }: Props) {
           onCancel={() => setDrawFrom(undefined)}
           onDone={(blob) => {
             setPhoto({ kind: 'new', blob, preview: URL.createObjectURL(blob) });
+            // le dessin devient la nouvelle base pour un recadrage éventuel
+            setOriginal(null);
             setDrawFrom(undefined);
+          }}
+        />
+      )}
+
+      {cropSrc && (
+        <PhotoCropper
+          src={cropSrc}
+          onCancel={() => setCropSrc(null)}
+          onDone={(blob) => {
+            setPhoto({ kind: 'new', blob, preview: URL.createObjectURL(blob) });
+            setCropSrc(null);
           }}
         />
       )}
