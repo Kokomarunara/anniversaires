@@ -77,26 +77,101 @@ function eventsFor(p: Person, hour: number): CalEvent[] {
   return events;
 }
 
-export function buildCalendar(people: Person[], hour: number): string {
+function toIcs(events: CalEvent[]): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Anniversaires//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    ...people.flatMap((p) => eventsFor(p, hour).flatMap(vevent)),
+    ...events.flatMap(vevent),
     'END:VCALENDAR',
   ];
   return lines.join('\r\n') + '\r\n';
 }
 
-/** Nombre d'événements qu'un export va créer (pour le message de confirmation) */
-export function countEvents(people: Person[]): number {
-  return people.reduce((n, p) => n + (p.remindOnDay ? 1 : 0) + p.reminders.length, 0);
+// --- Ce qui a déjà été envoyé au Calendrier (noté sur le téléphone) ---
+// Le Calendrier ne peut pas être modifié depuis l'app : on n'envoie que ce qui manque,
+// et on liste ce que l'utilisateur doit supprimer lui-même (personne supprimée, rappel retiré ou modifié).
+
+const SENT_KEY = 'anniv.calendar.sent';
+
+interface SentEvent {
+  /** empreinte de l'événement : si elle change, l'ancien événement n'est plus bon */
+  sig: string;
+  summary: string;
 }
 
-/** Ouvre le fichier : sur iPhone, le Calendrier propose « Tout ajouter » */
-export function openCalendar(content: string, fileName: string): void {
+// sans l'année : un événement envoyé reste valable d'une année sur l'autre
+const signature = (e: CalEvent) => [ymd(e.date).slice(4), e.rrule, e.summary, e.description ?? '', e.hour].join('|');
+
+function readSent(): Record<string, SentEvent> {
+  try {
+    return JSON.parse(localStorage.getItem(SENT_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function markAllSent(events: CalEvent[]): void {
+  localStorage.setItem(SENT_KEY, JSON.stringify(Object.fromEntries(events.map((e) => [e.uid, { sig: signature(e), summary: e.summary }]))));
+}
+
+export interface CalendarStatus {
+  /** nombre d'événements à ajouter au Calendrier */
+  toSend: number;
+  /** titres des événements déjà dans le Calendrier qui ne sont plus bons */
+  toRemove: string[];
+}
+
+export function calendarStatus(people: Person[], hour: number): CalendarStatus {
+  const sent = readSent();
+  const current = people.flatMap((p) => eventsFor(p, hour));
+  const byUid = new Map(current.map((e) => [e.uid, e]));
+  return {
+    toSend: current.filter((e) => sent[e.uid]?.sig !== signature(e)).length,
+    toRemove: Object.entries(sent)
+      .filter(([uid, s]) => {
+        const e = byUid.get(uid);
+        return !e || signature(e) !== s.sig;
+      })
+      .map(([, s]) => s.summary),
+  };
+}
+
+/** Envoie au Calendrier tout ce qui manque ; renvoie les anciens événements à supprimer à la main */
+export async function sendToCalendar(people: Person[], hour: number): Promise<string[]> {
+  const sent = readSent();
+  const current = people.flatMap((p) => eventsFor(p, hour));
+  const { toRemove } = calendarStatus(people, hour);
+  const missing = current.filter((e) => sent[e.uid]?.sig !== signature(e));
+  markAllSent(current);
+  if (missing.length) await openCalendar(toIcs(missing), 'anniversaires.ics');
+  return toRemove;
+}
+
+/** Renvoie absolument tout (si les anniversaires ont été effacés du Calendrier, par exemple) */
+export async function resendAllToCalendar(people: Person[], hour: number): Promise<void> {
+  const current = people.flatMap((p) => eventsFor(p, hour));
+  markAllSent(current);
+  if (current.length) await openCalendar(toIcs(current), 'anniversaires.ics');
+}
+
+const CALENDAR_CACHE = 'anniv-calendar';
+
+/**
+ * Ouvre le fichier pour le Calendrier : sur iPhone, une fenêtre propose de l'ajouter.
+ * Il est servi par le service worker (vraie adresse + bon format), ce qui marche aussi sans internet.
+ */
+async function openCalendar(content: string, fileName: string): Promise<void> {
+  if (navigator.serviceWorker?.controller && 'caches' in window) {
+    const url = new URL('./calendrier.ics', location.href).href;
+    const cache = await caches.open(CALENDAR_CACHE);
+    await cache.put(url, new Response(content, { headers: { 'Content-Type': 'text/calendar; charset=utf-8' } }));
+    location.assign(`${url}?t=${Date.now()}`);
+    return;
+  }
+  // sans service worker (en développement) : lien direct vers le contenu
   const a = document.createElement('a');
   a.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(content)}`;
   // sur ordinateur, on télécharge le fichier ; sur iPhone, l'ouvrir suffit

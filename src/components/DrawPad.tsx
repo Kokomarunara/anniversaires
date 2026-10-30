@@ -72,6 +72,15 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
     c.stroke();
   }
 
+  // un simple appui fait un point (un trait de longueur zéro ne s'affiche pas sur iPhone)
+  function dot(at: { x: number; y: number }) {
+    const c = ctx();
+    c.fillStyle = tool === 'eraser' ? '#ffffff' : color;
+    c.beginPath();
+    c.arc(at.x, at.y, brush / 2, 0, Math.PI * 2);
+    c.fill();
+  }
+
   function down(e: PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
     snapshot();
@@ -82,7 +91,7 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     last.current = p;
-    stroke(p, p);
+    dot(p);
   }
 
   function move(e: PointerEvent<HTMLCanvasElement>) {

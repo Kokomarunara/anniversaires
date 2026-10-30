@@ -10,11 +10,14 @@ interface Props {
   onOpen: (id: string) => void;
   onAdd: () => void;
   onSettings: () => void;
+  /** le Calendrier de l'iPhone n'a pas encore reçu les derniers changements */
+  calendarPending?: boolean;
+  onCalendar?: () => void;
 }
 
 const normalize = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
-export function Home({ people, store, onOpen, onAdd, onSettings }: Props) {
+export function Home({ people, store, onOpen, onAdd, onSettings, calendarPending = false, onCalendar }: Props) {
   const [query, setQuery] = useState('');
 
   const sorted = useMemo(() => {
@@ -128,11 +131,24 @@ export function Home({ people, store, onOpen, onAdd, onSettings }: Props) {
       )}
 
       {people && people.length > 0 && (
-        <button className="fab" data-nav onClick={onAdd} aria-label="Ajouter une personne">
-          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-          </svg>
-        </button>
+        <div className="fab-bar">
+          {/* envoie au Calendrier de l'iPhone : rouge qui clignote = pas à jour, vert = à jour */}
+          <button
+            className={`fab fab-calendar ${calendarPending ? 'is-pending' : 'is-synced'}`}
+            onClick={onCalendar}
+            aria-label={calendarPending ? 'Envoyer les anniversaires au Calendrier' : 'Calendrier à jour'}
+            title={calendarPending ? 'Envoyer au Calendrier' : 'Calendrier à jour'}
+          >
+            <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+              <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor" />
+            </svg>
+          </button>
+          <button className="fab" data-nav onClick={onAdd} aria-label="Ajouter une personne">
+            <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   );

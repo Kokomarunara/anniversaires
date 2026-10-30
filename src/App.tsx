@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Person } from './types';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { localStore as store } from './storage/localStore';
@@ -9,6 +9,7 @@ import { SettingsView } from './views/SettingsView';
 import { Landing } from './views/Landing';
 import { Atelier } from './views/Atelier';
 import { sound } from './lib/sound';
+import { calendarStatus, sendToCalendar } from './lib/calendar';
 import { isInstalled } from './lib/install';
 
 // ouvert dans le navigateur : page de présentation ; installé sur l'écran d'accueil : l'app
@@ -61,6 +62,10 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [people, setPeople] = useState<Person[] | null>(null);
   const [error, setErrorState] = useState<string | null>(null);
+  // message d'information (pas une erreur), par exemple au sujet du Calendrier
+  const [notice, setNotice] = useState<string | null>(null);
+  // change après chaque envoi au Calendrier, pour recalculer si le bouton 📅 doit pulser
+  const [calendarVersion, setCalendarVersion] = useState(0);
   const setError = useCallback((message: string | null) => {
     if (message) sound.error();
     setErrorState(message);
@@ -107,6 +112,17 @@ export function App() {
     });
   }
 
+  /** Bouton 📅 de l'accueil : envoie au Calendrier tout ce qui manque */
+  async function sendCalendar() {
+    const toRemove = await sendToCalendar(people ?? [], settings.hour);
+    setCalendarVersion((v) => v + 1);
+    if (toRemove.length) {
+      setNotice(`Dans l’app Calendrier, supprime ces anciens événements qui ne sont plus bons : ${toRemove.join(' · ')}`);
+    } else {
+      sound.success();
+    }
+  }
+
   async function remove(person: Person) {
     try {
       await store.remove(person);
@@ -119,6 +135,13 @@ export function App() {
     leave();
   }
 
+  // le bouton 📅 pulse tant que le Calendrier n'est pas à jour (ajout, modification ou suppression)
+  const calendarPending = useMemo(() => {
+    if (!people) return false;
+    const status = calendarStatus(people, settings.hour);
+    return status.toSend > 0 || status.toRemove.length > 0;
+  }, [people, settings.hour, calendarVersion]);
+
   const find = (id?: string) => people?.find((p) => p.id === id);
   let view;
 
@@ -127,7 +150,15 @@ export function App() {
   } else if (SHOW_LANDING) {
     view = <Landing />;
   } else if (route.name === 'settings') {
-    view = <SettingsView settings={settings} people={people ?? []} onBack={back} onChange={changeSettings} />;
+    view = (
+      <SettingsView
+        settings={settings}
+        people={people ?? []}
+        onBack={back}
+        onChange={changeSettings}
+        onCalendarResent={() => setCalendarVersion((v) => v + 1)}
+      />
+    );
   } else if (route.name === 'edit' && (!route.id || people)) {
     const person = find(route.id);
     view = (
@@ -165,6 +196,8 @@ export function App() {
         onOpen={(id) => go(`#/p/${id}`)}
         onAdd={() => go('#/new', sound.add)}
         onSettings={() => go('#/settings')}
+        calendarPending={calendarPending}
+        onCalendar={sendCalendar}
       />
     );
   }
@@ -176,6 +209,14 @@ export function App() {
         <div className="toast" role="alert">
           <span>{error}</span>
           <button onClick={() => setError(null)} aria-label="Fermer">
+            ✕
+          </button>
+        </div>
+      )}
+      {notice && !error && (
+        <div className="toast toast-info" role="status">
+          <span>📅 {notice}</span>
+          <button onClick={() => setNotice(null)} aria-label="Fermer">
             ✕
           </button>
         </div>

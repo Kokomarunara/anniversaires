@@ -7,7 +7,6 @@ import { Reminders } from '../components/Reminders';
 import { currentAge, formatBirthday, nextBirthday } from '../lib/birthdays';
 import { colorFor, inkOn } from '../lib/colors';
 import { sound } from '../lib/sound';
-import { buildCalendar, openCalendar } from '../lib/calendar';
 
 interface Props {
   person: Person;
@@ -89,17 +88,9 @@ export function PersonView({ person, store, hour, onBack, onEdit, onSave, onDele
         reminders={person.reminders}
         onChange={(patch) => onSave({ ...person, ...patch })}
       />
-      <button
-        type="button"
-        className="btn-secondary wide calendar-btn"
-        disabled={!person.remindOnDay && person.reminders.length === 0}
-        onClick={() => openCalendar(buildCalendar([person], hour), `anniversaire-${person.name}.ics`)}
-      >
-        <span aria-hidden="true">📅</span> Ajouter au calendrier
-      </button>
       <p className="muted reminders-note">
-        Ton iPhone t’alertera à {String(hour).padStart(2, '0')}:00. Si tu changes les rappels plus tard, ajoute-les de nouveau et
-        supprime les anciens dans Calendrier.
+        📅 Pour les envoyer dans le Calendrier de ton iPhone, touche le bouton 📅 de l’accueil : il clignote quand il y a du
+        nouveau. Ton iPhone t’alertera à {String(hour).padStart(2, '0')}:00.
       </p>
 
       <section>

@@ -1,5 +1,5 @@
 // Petits sons synthétisés à la volée (aucun fichier audio) : bulles et notes de marimba.
-// Sur iPhone, ils respectent le bouton silencieux.
+// Sur iPhone, ils respectent le bouton silencieux (sur le côté du téléphone).
 
 const KEY = 'anniv.sound';
 let ctx: AudioContext | null = null;
@@ -27,11 +27,25 @@ function audio(): AudioContext | null {
   if (!enabled) return null;
   try {
     ctx ??= new AudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
+    // « interrupted » : l'iPhone a coupé le son (appel, app en arrière-plan…)
+    if (ctx.state !== 'running') ctx.resume();
     return ctx;
   } catch {
     return null;
   }
+}
+
+/**
+ * Sur iPhone, Safari n'autorise le son qu'après un geste « terminé » (doigt levé, clic) :
+ * on débloque le son à ce moment-là en jouant un son vide, avant que les vrais sons en aient besoin.
+ */
+function unlock() {
+  const ac = audio();
+  if (!ac || ac.state === 'running') return;
+  const silent = ac.createBufferSource();
+  silent.buffer = ac.createBuffer(1, 1, 22050);
+  silent.connect(ac.destination);
+  silent.start(0);
 }
 
 interface Note {
@@ -96,6 +110,7 @@ export const sound = {
 
 /** Bulle discrète sur tout ce qui se touche (boutons, listes, choix) ; les éléments data-nav ont déjà leur son de page */
 export function installTapSounds(): void {
+  for (const type of ['touchend', 'click'] as const) document.addEventListener(type, unlock, { capture: true, passive: true });
   document.addEventListener(
     'pointerdown',
     (e) => {
