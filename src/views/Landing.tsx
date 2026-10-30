@@ -6,6 +6,7 @@ import { DrawPad } from '../components/DrawPad';
 import { Home } from './Home';
 import { PersonView } from './PersonView';
 import { EditPerson } from './EditPerson';
+import { drawFingerHead } from '../lib/fingerSketch';
 
 // Page affichée quand on ouvre le lien dans le navigateur : le bouton d'installation
 // et des aperçus de l'app, qui sont les vrais écrans remplis avec des personnes fictives.
@@ -49,19 +50,6 @@ const PEOPLE: Person[] = [
   person('6', 'Inès', 'F', inDays(200, 2001)),
 ];
 
-// petit dessin d'enfant pour l'aperçu de l'outil de dessin
-const DOODLE =
-  'data:image/svg+xml,' +
-  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#7fd3f7"/>
-  <circle cx="256" cy="280" r="150" fill="#ffcf33" stroke="#121212" stroke-width="10"/>
-  <path d="M150 170 Q256 40 362 170" fill="#e0262f" stroke="#121212" stroke-width="10" stroke-linejoin="round"/>
-  <circle cx="205" cy="260" r="22" fill="#121212"/><circle cx="307" cy="260" r="22" fill="#121212"/>
-  <path d="M190 340 Q256 400 322 340" fill="none" stroke="#121212" stroke-width="12" stroke-linecap="round"/>
-  <circle cx="160" cy="320" r="20" fill="#f6a9c9"/><circle cx="352" cy="320" r="20" fill="#f6a9c9"/>
-  <path d="M60 470 Q140 430 220 470 T380 470 T520 470" fill="none" stroke="#2f9e52" stroke-width="18" stroke-linecap="round"/>
-</svg>`);
-
 const PREVIEWS: { caption: string; screen: ReactNode }[] = [
   {
     caption: 'Tous tes proches, du plus proche anniversaire au plus lointain',
@@ -79,7 +67,7 @@ const PREVIEWS: { caption: string; screen: ReactNode }[] = [
   },
   {
     caption: 'Dessine sa photo de profil',
-    screen: <DrawPad startFrom={DOODLE} onCancel={noop} onDone={noop} embedded />,
+    screen: <DrawPad sketch={drawFingerHead} onCancel={noop} onDone={noop} embedded />,
   },
 ];
 

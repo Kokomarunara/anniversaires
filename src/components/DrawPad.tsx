@@ -14,9 +14,11 @@ interface Props {
   onDone: (drawing: Blob) => void;
   /** affiché comme aperçu sur la page de présentation : ne bloque pas le défilement */
   embedded?: boolean;
+  /** dessin tracé au chargement (aperçu), sur une toile de 512 × 512 */
+  sketch?: (ctx: CanvasRenderingContext2D) => void;
 }
 
-export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
+export function DrawPad({ startFrom, onCancel, onDone, embedded, sketch }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(COLORS[2]);
   const [brush, setBrush] = useState(BRUSHES[1]);
@@ -31,6 +33,7 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
     const c = ctx();
     c.fillStyle = '#ffffff';
     c.fillRect(0, 0, SIZE, SIZE);
+    sketch?.(c);
     if (!startFrom) return;
     const img = new Image();
     img.onload = () => {
@@ -38,7 +41,7 @@ export function DrawPad({ startFrom, onCancel, onDone, embedded }: Props) {
       c.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, SIZE, SIZE);
     };
     img.src = startFrom;
-  }, [startFrom]);
+  }, [startFrom, sketch]);
 
   // empêche la page de défiler pendant qu'on dessine sur iPhone
   useEffect(() => {
