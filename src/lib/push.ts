@@ -82,9 +82,3 @@ export async function disablePush(settings: Settings): Promise<void> {
     `Notifications désactivées : ${settings.deviceLabel}`,
   );
 }
-
-/** Affiche une notification locale pour vérifier que tout s'affiche bien */
-export async function showTestNotification(): Promise<void> {
-  const reg = await navigator.serviceWorker.ready;
-  await reg.showNotification('🎂 Test', { body: 'Les notifications fonctionnent sur cet appareil.', icon: './icons/icon-192.png' });
-}

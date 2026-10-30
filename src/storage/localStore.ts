@@ -40,7 +40,7 @@ export const localStore: Store = {
     try {
       localStorage.setItem(PHOTO_PREFIX + path, await blobToDataUrl(photo));
     } catch {
-      throw new Error("Plus assez de place en mode démo pour cette photo. Connecte GitHub dans les réglages pour stocker les photos en ligne.");
+      throw new Error('Plus assez de place sur cet appareil pour cette photo.');
     }
     return path;
   },

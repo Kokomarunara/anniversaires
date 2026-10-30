@@ -10,12 +10,11 @@ interface Props {
   onOpen: (id: string) => void;
   onAdd: () => void;
   onSettings: () => void;
-  onAddExamples: () => void;
 }
 
 const normalize = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
-export function Home({ people, store, onOpen, onAdd, onSettings, onAddExamples }: Props) {
+export function Home({ people, store, onOpen, onAdd, onSettings }: Props) {
   const [query, setQuery] = useState('');
 
   const sorted = useMemo(() => {
@@ -64,13 +63,6 @@ export function Home({ people, store, onOpen, onAdd, onSettings, onAddExamples }
         ))}
       </header>
 
-      {store.kind === 'demo' && (
-        <button className="demo-banner" data-nav onClick={onSettings}>
-          <span>Mode démo : les données restent sur cet appareil.</span>
-          <u>Connecter GitHub</u>
-        </button>
-      )}
-
       {people === null ? (
         <div className="grid">
           {[0, 1, 2, 3].map((i) => (
@@ -86,14 +78,9 @@ export function Home({ people, store, onOpen, onAdd, onSettings, onAddExamples }
           </div>
           <h2>C’est bien vide ici</h2>
           <p>Ajoute une première personne pour ne plus jamais oublier sa date.</p>
-          <button className="btn-primary" onClick={onAdd}>
+          <button className="btn-primary" data-nav onClick={onAdd}>
             Ajouter une personne
           </button>
-          {store.kind === 'demo' && (
-            <button className="btn-link" onClick={onAddExamples}>
-              Charger des exemples
-            </button>
-          )}
         </div>
       ) : (
         <>

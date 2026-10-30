@@ -25,7 +25,7 @@ export function loadSettings(): Settings {
     repo: profile.dataRepo,
     token: '',
     deviceId: newId(),
-    deviceLabel: 'Mon iPhone',
+    deviceLabel: profile.id === 'main' ? 'iPhone principal' : `iPhone ${profile.id}`,
     hour: 9,
     ...saved,
   };

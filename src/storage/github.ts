@@ -35,8 +35,9 @@ async function check(res: Response): Promise<Response> {
   } catch {
     /* corps non JSON */
   }
-  if (res.status === 401) message = 'Jeton GitHub refusé (expiré ou mal copié ?)';
-  if (res.status === 404) message = 'Dépôt introuvable, ou le jeton n’y a pas accès';
+  if (res.status === 401) message = 'Le code d’accès a expiré ou n’est plus valide';
+  if (res.status === 404) message = 'Données introuvables avec ce code d’accès';
+  if (res.status >= 500 || res.status === 0) message = 'Connexion impossible pour le moment, réessaie dans un instant';
   throw new GitHubError(res.status, message);
 }
 
@@ -122,6 +123,7 @@ export async function testConnection(cfg: GitHubConfig): Promise<void> {
   const res = await check(await fetch(`${API}/repos/${cfg.owner}/${cfg.repo}`, { headers: headers(cfg), cache: 'no-store' }));
   const repo = await res.json();
   if (repo.permissions && !repo.permissions.push) {
-    throw new GitHubError(403, 'Le jeton peut lire le dépôt mais pas y écrire (donne-lui « Contents : Read and write »)');
+    // le jeton doit avoir « Contents : Read and write » sur le dépôt
+    throw new GitHubError(403, 'Ce code d’accès permet de lire mais pas d’enregistrer');
   }
 }

@@ -229,24 +229,43 @@ h2,
   color: #121212;
 }
 
-.demo-banner {
+/* ---------- Premier lancement ---------- */
+
+.welcome {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-  width: 100%;
-  text-align: left;
-  font-size: 14px;
-  color: var(--text);
-  background: color-mix(in srgb, var(--yellow) 35%, var(--surface));
-  border-radius: 14px;
-  padding: 10px 14px;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.welcome-crowd {
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
-.demo-banner u {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  font-weight: 600;
+.welcome-crowd svg {
+  width: 96px;
+  height: 96px;
+  margin: 0 -10px;
+}
+
+.welcome-crowd svg:nth-child(2) {
+  transform: translateY(-16px) rotate(8deg);
+}
+
+.welcome h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.welcome > p {
+  margin: 6px 0 28px;
+  text-align: center;
+  color: var(--muted);
 }
 
 .search input {
@@ -1130,16 +1149,8 @@ h2,
   color: var(--danger);
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  margin: -12px 0 32px;
-}
-
-.stack > .btn-link {
-  align-self: center;
+.settings-note {
+  margin: -12px 6px 24px;
 }
 
 /* ---------- Divers ---------- */

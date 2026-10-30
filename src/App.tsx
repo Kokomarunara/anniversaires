@@ -4,12 +4,16 @@ import { hasGitHub, loadSettings, saveSettings, type Settings } from './settings
 import type { Store } from './storage/store';
 import { localStore } from './storage/localStore';
 import { createGitHubStore } from './storage/githubStore';
+import { GitHubError } from './storage/github';
 import { Home } from './views/Home';
 import { PersonView } from './views/PersonView';
 import { EditPerson } from './views/EditPerson';
 import { SettingsView } from './views/SettingsView';
-import { EXAMPLES } from './examples';
+import { Welcome } from './views/Welcome';
 import { sound } from './lib/sound';
+
+// en local (npm run dev), l'app fonctionne sans code d'accès, avec des données sur l'ordinateur
+const LOCAL_DEV = ['localhost', '127.0.0.1'].includes(location.hostname);
 
 type Route =
   | { name: 'home' }
@@ -79,7 +83,16 @@ export function App() {
       setPeople(await store.list());
       setError(null);
     } catch (err) {
-      setError(`Impossible de charger les données : ${(err as Error).message}`);
+      // code d'accès expiré : on revient à l'écran de bienvenue pour en coller un nouveau
+      if (err instanceof GitHubError && err.status === 401) {
+        setSettings((s) => {
+          const next = { ...s, token: '' };
+          saveSettings(next);
+          return next;
+        });
+        return;
+      }
+      setError(`Impossible de charger tes anniversaires : ${(err as Error).message}`);
       setPeople((p) => p ?? []);
     }
   }, [store, setError]);
@@ -123,15 +136,12 @@ export function App() {
     leave();
   }
 
-  async function addExamples() {
-    for (const p of EXAMPLES) await store.save(p);
-    refresh();
-  }
-
   const find = (id?: string) => people?.find((p) => p.id === id);
   let view;
 
-  if (route.name === 'settings') {
+  if (!hasGitHub(settings) && !LOCAL_DEV) {
+    view = <Welcome settings={settings} onConnected={changeSettings} />;
+  } else if (route.name === 'settings') {
     view = <SettingsView settings={settings} onBack={back} onChange={changeSettings} />;
   } else if (route.name === 'edit' && (!route.id || people)) {
     const person = find(route.id);
@@ -169,7 +179,6 @@ export function App() {
         onOpen={(id) => go(`#/p/${id}`)}
         onAdd={() => go('#/new', sound.add)}
         onSettings={() => go('#/settings')}
-        onAddExamples={addExamples}
       />
     );
   }
